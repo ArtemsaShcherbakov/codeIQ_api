@@ -1,10 +1,39 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: codeiq
+      POSTGRES_PASSWORD: codeiq
+      POSTGRES_DB: codeiq
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codeiq -d codeiq"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   api:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env
     ports:
       - "${PORT:-3000}:3000"
     environment:
       PORT: "3000"
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USERNAME: codeiq
+      DB_PASSWORD: codeiq
+      DB_DATABASE: codeiq
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  pgdata:
